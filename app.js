@@ -355,6 +355,7 @@ app.use((err, req, res, next) => {
     });
 });
 
-app.listen(3000, () => {
-    console.log('Servidor escuchando en el puerto 3000');
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Servidor escuchando en el puerto ${PORT}`);
 });
