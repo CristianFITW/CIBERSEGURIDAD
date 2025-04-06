@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Información del Jugador</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 2rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.8)), 
+                        url('https://images.unsplash.com/photo-1574629810360-7efbbe195018?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1920&q=80') no-repeat center center;
+            background-size: cover;
+            color: #fff;
+        }
+
+        h2 {
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            color: #fff;
+            text-align: center;
+            position: relative;
+            padding-bottom: 10px;
+        }
+
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(to right, rgba(0, 119, 182, 0.8), rgba(3, 201, 169, 0.8));
+            border-radius: 3px;
+        }
+
+        .player-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 20px;
+            padding: 2.5rem;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 2rem;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        li {
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        li:last-child {
+            border-bottom: none;
+        }
+
+        li strong {
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+            margin-right: 1rem;
+        }
+
+        li span {
+            color: #fff;
+            background: rgba(0, 119, 182, 0.3);
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            border-left: 3px solid rgba(3, 201, 169, 0.8);
+        }
+
+        .back-link {
+            display: inline-block;
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 0.95rem;
+            margin-top: 1rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .back-link:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1.5rem;
+            }
+            
+            h2 {
+                font-size: 2rem;
+            }
+            
+            .player-card {
+                padding: 1.8rem;
+            }
+            
+            li {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 0.8rem 0;
+            }
+            
+            li span {
+                margin-top: 0.3rem;
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h2 {
+                font-size: 1.8rem;
+            }
+            
+            .player-card {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h2>Información del Jugador</h2>
+    <div class="player-card">
+        <ul>
+            <li><strong>Nombre:</strong> <span>${nombre}</span></li>
+            <li><strong>País:</strong> <span>${nombre2}</span></li>
+            <li><strong>Número:</strong> <span>${nombre3}</span></li>
+            <li><strong>Equipo:</strong> <span>${nombre4}</span></li>
+            <li><strong>Costo:</strong> <span>${nombre5}</span></li>
+            <li><strong>Venta:</strong> <span>${nombre6}</span></li>
+            <li><strong>Reside:</strong> <span>${nombre7}</span></li>
+            <li><strong>Goles:</strong> <span>${nombre8}</span></li>
+        </ul>
+    </div>
+    <a href="/" class="back-link">Volver al Inicio</a>
+</body>
+</html>

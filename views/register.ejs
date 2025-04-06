@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Usuario</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.8)), 
+                        url('https://images.unsplash.com/photo-1560272564-c83b66b1ad12?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1920&q=80') no-repeat center center;
+            background-size: cover;
+            color: #fff;
+        }
+
+        .register-container {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-radius: 25px;
+            padding: 2.5rem 3rem;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: slideUp 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+            color: #fff;
+            position: relative;
+        }
+
+        h1::after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 3px;
+            background: linear-gradient(to right, rgba(3, 201, 169, 0.8), rgba(9, 173, 104, 0.8));
+            margin: 0.5rem auto 0;
+            border-radius: 3px;
+        }
+
+        .form-group {
+            margin-bottom: 1.8rem;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.6rem;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 0.95rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+            color: #fff;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .form-group input[type="password"] {
+            letter-spacing: 1px;
+        }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(45deg, rgba(9, 173, 104, 0.9), rgba(3, 201, 169, 0.9));
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            margin-top: 1.5rem;
+            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(5px);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        button:hover {
+            background: linear-gradient(45deg, rgba(9, 173, 104, 1), rgba(3, 201, 169, 1));
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .login-link {
+            margin-top: 2rem;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.95rem;
+            text-align: center;
+        }
+
+        .login-link a {
+            color: rgba(255, 255, 255, 0.95);
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+            padding-bottom: 2px;
+        }
+
+        .login-link a::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 1.5px;
+            bottom: 0;
+            left: 0;
+            background: linear-gradient(to right, rgba(3, 201, 169, 0.8), rgba(9, 173, 104, 0.8));
+            transform: scaleX(0);
+            transform-origin: right;
+            transition: transform 0.3s ease;
+        }
+
+        .login-link a:hover::after {
+            transform: scaleX(1);
+            transform-origin: left;
+        }
+
+        @media (max-width: 576px) {
+            .register-container {
+                padding: 2rem 1.8rem;
+                border-radius: 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+                margin-bottom: 1.5rem;
+            }
+            
+            .form-group input {
+                padding: 13px 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <h1>Registro</h1>
+        <form action="/register" method="post">
+            <div class="form-group">
+                <label for="usuario">Nombre de usuario:</label>
+                <input type="text" id="usuario" name="usuario" placeholder="Mínimo 3 caracteres" required minlength="3">
+            </div>
+            <div class="form-group">
+                <label for="contrasena">Contraseña:</label>
+                <input type="password" id="contrasena" name="contrasena" placeholder="Mínimo 8 caracteres" required minlength="8">
+            </div>
+            <button type="submit">Registrarse</button>
+            <div class="login-link">
+                ¿Ya tienes cuenta? <a href="/login">Inicia sesión</a>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
