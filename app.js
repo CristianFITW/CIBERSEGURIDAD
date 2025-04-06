@@ -12,18 +12,18 @@ app.use(express.static('public'));
 
 // Configuración de la conexión a MySQL en Railway
 const con = mysql.createConnection({
-    host: 'gondola.proxy.rlwy.net', // Usando el host público de Railway
+    host: 'gondola.proxy.rlwy.net',
     user: 'root',
-    password: 'GlGGCOExGiDLvJTbqWhEPfOGZxQqYGUX', // Contraseña proporcionada
+    password: 'GlGGCOExGiDLvJTbqWhEPfOGZxQqYGUX',
     database: 'railway',
-    port: 31695 // Puerto proporcionado
+    port: 31695
 });
 
 // Manejo de errores de conexión
 con.connect((err) => {
     if (err) {
         console.error('Error al conectar a la base de datos:', err);
-        process.exit(1); // Salir si no podemos conectar a la DB
+        process.exit(1);
     }
     console.log('Conectado a la base de datos MySQL en Railway');
 });
@@ -32,31 +32,28 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
+// Configuración mejorada de sesión
+app.set('trust proxy', 1); // Necesario si estás detrás de un proxy (como Railway)
 app.use(session({
     secret: "secreto",
-    resave: false,
-    saveUninitialized: true,
+    resave: true,
+    saveUninitialized: false,
     cookie: {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 1000 * 60 * 60 * 24
-    }
+        secure: false, // Cambiar a true en producción con HTTPS
+        maxAge: 1000 * 60 * 60 * 24,
+        sameSite: 'lax'
+    },
+    store: new (require('express-session').MemoryStore)()
 }));
 
 // Función para sanitizar y validar entradas
 function sanitizeInput(input) {
     if (typeof input !== 'string') return '';
-    
-    // Eliminar etiquetas HTML/XML
     let sanitized = input.replace(/<[^>]*>?/gm, '');
-    
-    // Eliminar caracteres potencialmente peligrosos para SQL
     sanitized = sanitized.replace(/['"\\;]/g, '');
-    
-    // Eliminar scripts y eventos
     sanitized = sanitized.replace(/script\s*:/gi, '');
     sanitized = sanitized.replace(/on\w+=\s*["'][^"']*["']/gi, '');
-    
     return sanitized.trim();
 }
 
@@ -65,8 +62,6 @@ function validateField(fieldValue, fieldName) {
     if (!fieldValue) return { valid: false, message: `${fieldName} es requerido` };
     
     const value = String(fieldValue);
-    
-    // Patrones de validación
     const sqlInjectionPattern = /(\b(SELECT|INSERT|UPDATE|DELETE|OR|DROP|UNION|EXEC|ALTER|CREATE|TRUNCATE)\b)|(--)|(#)/i;
     const xssPattern = /<script|<\/script>|javascript:|on\w+\s*=/i;
     const htmlPattern = /<[^>]*>?/;
@@ -93,44 +88,74 @@ function validateRequestBody(req, res, next) {
         if (!validation.valid) {
             return res.status(400).render('error', { mensaje: validation.message });
         }
-        // Sanitizar el valor antes de continuar
         req.body[key] = sanitizeInput(value);
     }
     next();
 }
 
 function verificarSesion(req, res, next) {
+    console.log('Sesión actual:', req.session); // Para depuración
     if (req.session.usuario) {
         return next();
     }
     res.redirect("/login");
 }
 
+// RUTAS PRINCIPALES
+app.get("/", (req, res) => {
+    const nombreUsuario = req.session.usuario ? sanitizeInput(req.session.usuario) : null;
+    res.render("index", {
+        nombreUsuario: nombreUsuario
+    });
+});
+
+// RUTAS DE AUTENTICACIÓN
 app.get("/login", (req, res) => {
+    if (req.session.usuario) {
+        return res.redirect("/bienvenido");
+    }
     res.render("login");
 });
 
 app.post("/login", validateRequestBody, (req, res) => {
     const { usuario, contrasena } = req.body;
 
-    // Validación adicional para credenciales
     if (!usuario || !contrasena) {
         return res.status(400).render('error', { 
             mensaje: "Usuario y contraseña son requeridos" 
         });
     }
 
-    // Usar parámetros preparados para evitar SQL injection
     con.query("SELECT * FROM usuarios WHERE username = ?", [usuario], (err, resultados) => {
-        if (err) return res.status(500).send("Error en la base de datos");
+        if (err) {
+            console.error("Error en la consulta:", err);
+            return res.status(500).render('error', { mensaje: "Error en la base de datos" });
+        }
 
         if (resultados.length > 0) {
             bcrypt.compare(contrasena, resultados[0].password, (err, coincide) => {
-                if (err) return res.status(500).send("Error en la verificación");
+                if (err) {
+                    console.error("Error al comparar contraseñas:", err);
+                    return res.status(500).render('error', { mensaje: "Error en la verificación" });
+                }
 
                 if (coincide) {
-                    req.session.usuario = usuario;
-                    return res.redirect("/bienvenido");
+                    req.session.regenerate((err) => {
+                        if (err) {
+                            console.error("Error al regenerar sesión:", err);
+                            return res.status(500).render('error', { mensaje: "Error al iniciar sesión" });
+                        }
+                        
+                        req.session.usuario = usuario;
+                        req.session.save((err) => {
+                            if (err) {
+                                console.error("Error al guardar sesión:", err);
+                                return res.status(500).render('error', { mensaje: "Error al iniciar sesión" });
+                            }
+                            console.log("Sesión iniciada correctamente para:", usuario);
+                            return res.redirect("/bienvenido");
+                        });
+                    });
                 } else {
                     return res.status(401).render('error', { 
                         mensaje: "Credenciales incorrectas" 
@@ -146,7 +171,7 @@ app.post("/login", validateRequestBody, (req, res) => {
 });
 
 app.get("/bienvenido", verificarSesion, (req, res) => {
-    // Escapar el nombre de usuario antes de mostrarlo en la vista
+    console.log("Accediendo a /bienvenido con usuario:", req.session.usuario);
     const nombreUsuario = sanitizeInput(req.session.usuario);
     res.render('bienvenido', {
         nombreUsuario: nombreUsuario
@@ -156,6 +181,7 @@ app.get("/bienvenido", verificarSesion, (req, res) => {
 app.get("/logout", (req, res) => {
     req.session.destroy(err => {
         if (err) {
+            console.error("Error al destruir sesión:", err);
             return res.status(500).render('error', { 
                 mensaje: "Error al cerrar sesión" 
             });
@@ -178,7 +204,6 @@ app.post("/register", validateRequestBody, (req, res) => {
         });
     }
 
-    // Validar longitud mínima de contraseña
     if (contrasena.length < 8) {
         return res.status(400).render('error', { 
             mensaje: "La contraseña debe tener al menos 8 caracteres" 
@@ -205,18 +230,25 @@ app.post("/register", validateRequestBody, (req, res) => {
                 });
             }
             
-            res.render('registro-exitoso');
+            // Iniciar sesión automáticamente después del registro
+            req.session.regenerate((err) => {
+                if (err) {
+                    console.error("Error al regenerar sesión:", err);
+                    return res.render('registro-exitoso');
+                }
+                req.session.usuario = usuario;
+                req.session.save((err) => {
+                    if (err) {
+                        console.error("Error al guardar sesión:", err);
+                    }
+                    res.render('registro-exitoso');
+                });
+            });
         });
     });
 });
 
-app.get("/", (req, res) => {
-    const nombreUsuario = req.session.usuario ? sanitizeInput(req.session.usuario) : null;
-    res.render("index", {
-        nombreUsuario: nombreUsuario
-    });
-});
-
+// RUTAS DE USUARIOS (protegidas)
 app.get('/obtener-usuario', verificarSesion, (req, res) => {
     res.render('obtener-usuario');
 });
@@ -226,16 +258,7 @@ app.get('/agregar-usuario', verificarSesion, (req, res) => {
 });
 
 app.post('/agregarUsuario', verificarSesion, validateRequestBody, (req, res) => {
-    const { 
-        nombre, 
-        nombre2, 
-        nombre3, 
-        nombre4, 
-        nombre5, 
-        nombre6, 
-        nombre7, 
-        nombre8 
-    } = req.body;
+    const { nombre, nombre2, nombre3, nombre4, nombre5, nombre6, nombre7, nombre8 } = req.body;
 
     con.query(
         'INSERT INTO usuario (nombre, nombre2, nombre3, nombre4, nombre5, nombre6, nombre7, nombre8) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', 
@@ -269,7 +292,6 @@ app.get('/obtenerUsuario', verificarSesion, (req, res) => {
             });
         }
         
-        // Sanitizar todos los resultados antes de mostrarlos
         const usuariosSanitizados = resultados.map(usuario => {
             return {
                 id: usuario.id,
@@ -293,7 +315,6 @@ app.get('/obtenerUsuario', verificarSesion, (req, res) => {
 app.post('/eliminarUsuario/:id', verificarSesion, (req, res) => {
     const userId = sanitizeInput(req.params.id);
 
-    // Validar que el ID sea numérico
     if (!/^\d+$/.test(userId)) {
         return res.status(400).render('error', { 
             mensaje: "ID de usuario no válido" 
@@ -322,7 +343,6 @@ app.post('/editarUsuario/:id', verificarSesion, validateRequestBody, (req, res) 
     const userId = sanitizeInput(req.params.id);
     const nuevoNombre = req.body.nombre;
 
-    // Validar que el ID sea numérico
     if (!/^\d+$/.test(userId)) {
         return res.status(400).render('error', { 
             mensaje: "ID de usuario no válido" 
