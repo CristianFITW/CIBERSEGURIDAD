@@ -62,7 +62,7 @@ function validateField(fieldValue, fieldName) {
     if (!fieldValue) return { valid: false, message: `${fieldName} es requerido` };
     
     const value = String(fieldValue);
-    const sqlInjectionPattern = /(\b(SELECT|INSERT|UPDATE|DELETE|OR|DROP|UNION|EXEC|ALTER|CREATE|TRUNCATE)\b)|(--)|(#)/i;
+    const sqlInjectionPattern = /((\b|\s)(SELECT|INSERT|CALL|EXEC|ALTER|CREATE|TRUNCATE|UNION|LOAD_FILE|BENCHMARK|SLEEP|IF|SUBSTRING)\b)|([\'\"](\\u[\da-fA-F]{4}|\s*OR\s*[1-9]))|(\/\*!|\*\/|--|#)/i;
     const xssPattern = /<script|<\/script>|javascript:|on\w+\s*=/i;
     const htmlPattern = /<[^>]*>?/;
     

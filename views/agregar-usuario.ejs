@@ -138,35 +138,34 @@
     <h2>Formulario de Jugador</h2>
     <form id="formJugador" action="/agregarUsuario" method="post" onsubmit="return validarFormulario(event)">
         <label for="nombre">Nombre</label>
-        <input type="text" id="nombre" name="nombre" placeholder="Nombre" required>
-        
+        <input type="text" id="nombre" name="nombre" placeholder="Nombre" required maxlength="50">
+
         <label for="pais">País</label>
-        <input type="text" id="pais" name="nombre2" placeholder="País" required>
-        
+        <input type="text" id="pais" name="nombre2" placeholder="País" required maxlength="50">
+
         <label for="numero">Número</label>
         <input type="number" id="numero" name="nombre3" placeholder="Número" min="0" max="100" required>
-        
+
         <label for="equipo">Equipo</label>
-        <input type="text" id="equipo" name="nombre4" placeholder="Equipo" required>
-        
+        <input type="text" id="equipo" name="nombre4" placeholder="Equipo" required maxlength="50">
+
         <label for="costo">Costo en el mercado</label>
-        <input type="number" id="costo" name="nombre5" placeholder="Costo en el mercado" min="0" max="10000" step="1000" required>
-        
+        <input type="number" id="costo" name="nombre5" placeholder="Costo en el mercado" min="1001" max="1000000000" step="1" required>
+
         <label for="venta">Precio de venta</label>
-        <input type="number" id="venta" name="nombre6" placeholder="Precio de venta" min="0" max="10000" step="1000" required>
-        
+        <input type="number" id="venta" name="nombre6" placeholder="Precio de venta" min="1001" max="1000000000" step="1" required>
+
         <label for="reside">Reside</label>
-        <input type="text" id="reside" name="nombre7" placeholder="Reside" required>
-        
+        <input type="text" id="reside" name="nombre7" placeholder="Reside" required maxlength="50">
+
         <label for="goles">Goles</label>
         <input type="number" id="goles" name="nombre8" placeholder="Goles" min="0" max="100" required>
-        
+
         <button type="submit">Agregar Usuario</button>
     </form>
     <div class="links">
         <a href="/">Volver al Inicio</a>
         <a href="/">Otra Acción</a>
     </div>
-
 </body>
 </html>
