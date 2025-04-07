@@ -10,7 +10,6 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static('public'));
 
-// Configuración de la conexión a MySQL en Railway
 const con = mysql.createConnection({
     host: 'gondola.proxy.rlwy.net',
     user: 'root',
@@ -19,7 +18,6 @@ const con = mysql.createConnection({
     port: 31695
 });
 
-// Manejo de errores de conexión
 con.connect((err) => {
     if (err) {
         console.error('Error al conectar a la base de datos:', err);
@@ -32,22 +30,20 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// Configuración mejorada de sesión
-app.set('trust proxy', 1); // Necesario si estás detrás de un proxy (como Railway)
+app.set('trust proxy', 1);
 app.use(session({
     secret: "secreto",
     resave: true,
     saveUninitialized: false,
     cookie: {
         httpOnly: true,
-        secure: false, // Cambiar a true en producción con HTTPS
+        secure: false,
         maxAge: 1000 * 60 * 60 * 24,
         sameSite: 'lax'
     },
     store: new (require('express-session').MemoryStore)()
 }));
 
-// Función para sanitizar y validar entradas
 function sanitizeInput(input) {
     if (typeof input !== 'string') return '';
     let sanitized = input.replace(/<[^>]*>?/gm, '');
@@ -57,7 +53,6 @@ function sanitizeInput(input) {
     return sanitized.trim();
 }
 
-// Función para validar un campo contra patrones maliciosos
 function validateField(fieldValue, fieldName) {
     if (!fieldValue) return { valid: false, message: `${fieldName} es requerido` };
     
@@ -81,7 +76,6 @@ function validateField(fieldValue, fieldName) {
     return { valid: true };
 }
 
-// Middleware para validar todos los campos del body
 function validateRequestBody(req, res, next) {
     for (const [key, value] of Object.entries(req.body)) {
         const validation = validateField(value, key);
@@ -94,14 +88,13 @@ function validateRequestBody(req, res, next) {
 }
 
 function verificarSesion(req, res, next) {
-    console.log('Sesión actual:', req.session); // Para depuración
+    console.log('Sesión actual:', req.session);
     if (req.session.usuario) {
         return next();
     }
     res.redirect("/login");
 }
 
-// RUTAS PRINCIPALES
 app.get("/", (req, res) => {
     const nombreUsuario = req.session.usuario ? sanitizeInput(req.session.usuario) : null;
     res.render("index", {
@@ -109,7 +102,6 @@ app.get("/", (req, res) => {
     });
 });
 
-// RUTAS DE AUTENTICACIÓN
 app.get("/login", (req, res) => {
     if (req.session.usuario) {
         return res.redirect("/bienvenido");
@@ -230,7 +222,6 @@ app.post("/register", validateRequestBody, (req, res) => {
                 });
             }
             
-            // Iniciar sesión automáticamente después del registro
             req.session.regenerate((err) => {
                 if (err) {
                     console.error("Error al regenerar sesión:", err);
@@ -248,7 +239,6 @@ app.post("/register", validateRequestBody, (req, res) => {
     });
 });
 
-// RUTAS DE USUARIOS (protegidas)
 app.get('/obtener-usuario', verificarSesion, (req, res) => {
     res.render('obtener-usuario');
 });
@@ -367,7 +357,6 @@ app.post('/editarUsuario/:id', verificarSesion, validateRequestBody, (req, res) 
     });
 });
 
-// Middleware para manejar errores
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).render('error', { 
