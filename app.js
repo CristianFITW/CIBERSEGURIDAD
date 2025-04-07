@@ -248,42 +248,42 @@ app.get('/agregar-usuario', verificarSesion, (req, res) => {
 });
 app.post('/agregarUsuario', verificarSesion, validateRequestBody, (req, res) => {
     const { nombre, nombre2, nombre3, nombre4, nombre5, nombre6, nombre7, nombre8 } = req.body;
-    const creadoPor = req.session.usuario;
-
-    // Verificación adicional para ver los datos que se están enviando
-    console.log('Datos recibidos:', {
-        nombre, nombre2, nombre3, nombre4, nombre5, nombre6, nombre7, nombre8,
-        creadoPor
-    });
-
-    con.query(
-        'INSERT INTO usuario (nombre, nombre2, nombre3, nombre4, nombre5, nombre6, nombre7, nombre8, creado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', 
-        [nombre, nombre2, nombre3, nombre4, nombre5, nombre6, nombre7, nombre8, creadoPor], 
-        (err, result) => {
-            if (err) {
-                console.error("Error detallado en la base de datos:", {
-                    error: err,
-                    sqlMessage: err.sqlMessage,
-                    sql: err.sql
-                });
-                return res.status(500).render('error', { 
-                    mensaje: "Error al guardar en la base de datos: " + err.sqlMessage 
-                });
-            }
-            
-            console.log('Jugador agregado correctamente:', result);
-            res.render('info-usuario', {
-                nombre: sanitizeInput(nombre),
-                nombre2: sanitizeInput(nombre2),
-                nombre3: sanitizeInput(nombre3),
-                nombre4: sanitizeInput(nombre4),
-                nombre5: sanitizeInput(nombre5),
-                nombre6: sanitizeInput(nombre6),
-                nombre7: sanitizeInput(nombre7),
-                nombre8: sanitizeInput(nombre8)
+    
+    // Primero obtenemos el ID del usuario actual
+    con.query("SELECT id FROM usuarios WHERE username = ?", [req.session.usuario], (err, results) => {
+        if (err || results.length === 0) {
+            console.error("Error al obtener ID de usuario:", err);
+            return res.status(500).render('error', { 
+                mensaje: "Error al identificar al usuario" 
             });
         }
-    );
+
+        const usuarioId = results[0].id;
+
+        con.query(
+            'INSERT INTO jugadores (nombre, nombre2, nombre3, nombre4, nombre5, nombre6, nombre7, nombre8, usuario_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', 
+            [nombre, nombre2, nombre3, nombre4, nombre5, nombre6, nombre7, nombre8, usuarioId], 
+            (err) => {
+                if (err) {
+                    console.error("Error en la base de datos:", err);
+                    return res.status(500).render('error', { 
+                        mensaje: "Error al guardar en la base de datos" 
+                    });
+                }
+                
+                res.render('info-usuario', {
+                    nombre: sanitizeInput(nombre),
+                    nombre2: sanitizeInput(nombre2),
+                    nombre3: sanitizeInput(nombre3),
+                    nombre4: sanitizeInput(nombre4),
+                    nombre5: sanitizeInput(nombre5),
+                    nombre6: sanitizeInput(nombre6),
+                    nombre7: sanitizeInput(nombre7),
+                    nombre8: sanitizeInput(nombre8)
+                });
+            }
+        );
+    });
 });
 
 app.get('/obtenerUsuario', verificarSesion, (req, res) => {
