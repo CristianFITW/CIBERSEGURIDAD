@@ -246,20 +246,32 @@ app.get('/obtener-usuario', verificarSesion, (req, res) => {
 app.get('/agregar-usuario', verificarSesion, (req, res) => {
     res.render('agregar-usuario');
 });
-
 app.post('/agregarUsuario', verificarSesion, validateRequestBody, (req, res) => {
     const { nombre, nombre2, nombre3, nombre4, nombre5, nombre6, nombre7, nombre8 } = req.body;
-    const creadoPor = req.session.usuario; // Usamos el nombre de usuario de la sesión
+    const creadoPor = req.session.usuario;
+
+    // Verificación adicional para ver los datos que se están enviando
+    console.log('Datos recibidos:', {
+        nombre, nombre2, nombre3, nombre4, nombre5, nombre6, nombre7, nombre8,
+        creadoPor
+    });
 
     con.query(
         'INSERT INTO usuario (nombre, nombre2, nombre3, nombre4, nombre5, nombre6, nombre7, nombre8, creado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', 
         [nombre, nombre2, nombre3, nombre4, nombre5, nombre6, nombre7, nombre8, creadoPor], 
-        (err) => {
+        (err, result) => {
             if (err) {
-                console.error("Error en la base de datos:", err);
-                return res.status(500).render('error', { mensaje: "Error al guardar en la base de datos" });
+                console.error("Error detallado en la base de datos:", {
+                    error: err,
+                    sqlMessage: err.sqlMessage,
+                    sql: err.sql
+                });
+                return res.status(500).render('error', { 
+                    mensaje: "Error al guardar en la base de datos: " + err.sqlMessage 
+                });
             }
             
+            console.log('Jugador agregado correctamente:', result);
             res.render('info-usuario', {
                 nombre: sanitizeInput(nombre),
                 nombre2: sanitizeInput(nombre2),
