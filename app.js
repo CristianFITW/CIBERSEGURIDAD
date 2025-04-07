@@ -89,13 +89,25 @@ function validateRequestBody(req, res, next) {
 
 function verificarSesion(req, res, next) {
     console.log('Sesión actual:', req.session);
-    if (req.session.usuario && req.session.usuarioId) {
+    if (req.session.usuario) {
         return next();
     }
     res.redirect("/login");
 }
 
-// Rutas de autenticación (login, register, logout) permanecen iguales hasta el inicio de sesión
+app.get("/", (req, res) => {
+    const nombreUsuario = req.session.usuario ? sanitizeInput(req.session.usuario) : null;
+    res.render("index", {
+        nombreUsuario: nombreUsuario
+    });
+});
+
+app.get("/login", (req, res) => {
+    if (req.session.usuario) {
+        return res.redirect("/bienvenido");
+    }
+    res.render("login");
+});
 
 app.post("/login", validateRequestBody, (req, res) => {
     const { usuario, contrasena } = req.body;
@@ -126,8 +138,7 @@ app.post("/login", validateRequestBody, (req, res) => {
                             return res.status(500).render('error', { mensaje: "Error al iniciar sesión" });
                         }
                         
-                        req.session.usuario = resultados[0].username;
-                        req.session.usuarioId = resultados[0].id; // Guardar el ID del usuario
+                        req.session.usuario = usuario;
                         req.session.save((err) => {
                             if (err) {
                                 console.error("Error al guardar sesión:", err);
@@ -151,9 +162,82 @@ app.post("/login", validateRequestBody, (req, res) => {
     });
 });
 
-// Resto de rutas de autenticación permanecen iguales...
+app.get("/bienvenido", verificarSesion, (req, res) => {
+    console.log("Accediendo a /bienvenido con usuario:", req.session.usuario);
+    const nombreUsuario = sanitizeInput(req.session.usuario);
+    res.render('bienvenido', {
+        nombreUsuario: nombreUsuario
+    });
+});
 
-// Rutas para manejar los jugadores
+app.get("/logout", (req, res) => {
+    req.session.destroy(err => {
+        if (err) {
+            console.error("Error al destruir sesión:", err);
+            return res.status(500).render('error', { 
+                mensaje: "Error al cerrar sesión" 
+            });
+        }
+        res.clearCookie("connect.sid");
+        res.redirect("/login");
+    });
+});
+
+app.get("/register", (req, res) => {
+    res.render("register");
+});
+
+app.post("/register", validateRequestBody, (req, res) => {
+    const { usuario, contrasena } = req.body;
+
+    if (!usuario || !contrasena) {
+        return res.status(400).render('error', { 
+            mensaje: "Usuario y contraseña son requeridos" 
+        });
+    }
+
+    if (contrasena.length < 8) {
+        return res.status(400).render('error', { 
+            mensaje: "La contraseña debe tener al menos 8 caracteres" 
+        });
+    }
+
+    bcrypt.hash(contrasena, 10, (err, hash) => {
+        if (err) {
+            console.error("Error al encriptar:", err);
+            return res.status(500).render('error', {
+                mensaje: "Error al encriptar la contraseña"
+            });
+        }
+
+        con.query("INSERT INTO usuarios (username, password) VALUES (?, ?)", 
+        [usuario, hash], 
+        (err, resultado) => {
+            if (err) {
+                console.error("Error en BD:", err);
+                return res.status(500).render('error', {
+                    mensaje: err.code === 'ER_DUP_ENTRY' 
+                        ? "El usuario ya existe" 
+                        : "Error al registrar usuario"
+                });
+            }
+            
+            req.session.regenerate((err) => {
+                if (err) {
+                    console.error("Error al regenerar sesión:", err);
+                    return res.render('registro-exitoso');
+                }
+                req.session.usuario = usuario;
+                req.session.save((err) => {
+                    if (err) {
+                        console.error("Error al guardar sesión:", err);
+                    }
+                    res.render('registro-exitoso');
+                });
+            });
+        });
+    });
+});
 
 app.get('/obtener-usuario', verificarSesion, (req, res) => {
     res.render('obtener-usuario');
@@ -165,11 +249,11 @@ app.get('/agregar-usuario', verificarSesion, (req, res) => {
 
 app.post('/agregarUsuario', verificarSesion, validateRequestBody, (req, res) => {
     const { nombre, nombre2, nombre3, nombre4, nombre5, nombre6, nombre7, nombre8 } = req.body;
-    const usuarioId = req.session.usuarioId;
+    const creadoPor = req.session.usuario; // Usamos el nombre de usuario de la sesión
 
     con.query(
-        'INSERT INTO usuario (nombre, nombre2, nombre3, nombre4, nombre5, nombre6, nombre7, nombre8, usuario_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', 
-        [nombre, nombre2, nombre3, nombre4, nombre5, nombre6, nombre7, nombre8, usuarioId], 
+        'INSERT INTO usuario (nombre, nombre2, nombre3, nombre4, nombre5, nombre6, nombre7, nombre8, creado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', 
+        [nombre, nombre2, nombre3, nombre4, nombre5, nombre6, nombre7, nombre8, creadoPor], 
         (err) => {
             if (err) {
                 console.error("Error en la base de datos:", err);
@@ -191,9 +275,9 @@ app.post('/agregarUsuario', verificarSesion, validateRequestBody, (req, res) => 
 });
 
 app.get('/obtenerUsuario', verificarSesion, (req, res) => {
-    const usuarioId = req.session.usuarioId;
+    const usuarioActual = req.session.usuario;
     
-    con.query('SELECT * FROM usuario WHERE usuario_id = ?', [usuarioId], (err, resultados) => {
+    con.query('SELECT * FROM usuario WHERE creado_por = ?', [usuarioActual], (err, resultados) => {
         if (err) {
             console.error("Error al obtener usuarios", err);
             return res.status(500).render('error', { 
@@ -220,10 +304,9 @@ app.get('/obtenerUsuario', verificarSesion, (req, res) => {
         });
     });
 });
-
 app.post('/eliminarUsuario/:id', verificarSesion, (req, res) => {
     const userId = sanitizeInput(req.params.id);
-    const usuarioId = req.session.usuarioId;
+    const usuarioActual = req.session.usuario;
 
     if (!/^\d+$/.test(userId)) {
         return res.status(400).render('error', { 
@@ -231,7 +314,7 @@ app.post('/eliminarUsuario/:id', verificarSesion, (req, res) => {
         });
     }
 
-    con.query('DELETE FROM usuario WHERE id = ? AND usuario_id = ?', [userId, usuarioId], (err, respuesta) => {
+    con.query('DELETE FROM usuario WHERE id = ? AND creado_por = ?', [userId, usuarioActual], (err, respuesta) => {
         if (err) {
             console.error("Error al eliminar usuario", err);
             return res.status(500).render('error', { 
@@ -248,11 +331,10 @@ app.post('/eliminarUsuario/:id', verificarSesion, (req, res) => {
         }
     });
 });
-
 app.post('/editarUsuario/:id', verificarSesion, validateRequestBody, (req, res) => {
     const userId = sanitizeInput(req.params.id);
-    const { nombre, nombre2, nombre3, nombre4, nombre5, nombre6, nombre7, nombre8 } = req.body;
-    const usuarioId = req.session.usuarioId;
+    const nuevoNombre = req.body.nombre;
+    const usuarioActual = req.session.usuario;
 
     if (!/^\d+$/.test(userId)) {
         return res.status(400).render('error', { 
@@ -260,9 +342,8 @@ app.post('/editarUsuario/:id', verificarSesion, validateRequestBody, (req, res) 
         });
     }
 
-    con.query(
-        'UPDATE usuario SET nombre = ?, nombre2 = ?, nombre3 = ?, nombre4 = ?, nombre5 = ?, nombre6 = ?, nombre7 = ?, nombre8 = ? WHERE id = ? AND usuario_id = ?', 
-        [nombre, nombre2, nombre3, nombre4, nombre5, nombre6, nombre7, nombre8, userId, usuarioId], 
+    con.query('UPDATE usuario SET nombre = ? WHERE id = ? AND creado_por = ?', 
+        [nuevoNombre, userId, usuarioActual], 
         (err, respuesta) => {
             if (err) {
                 console.error("Error al actualizar usuario", err);
@@ -288,7 +369,13 @@ app.use((err, req, res, next) => {
         mensaje: "Ocurrió un error interno en el servidor" 
     });
 });
-
+function verificarSesion(req, res, next) {
+    console.log('Sesión actual:', req.session);
+    if (req.session.usuario) {
+        return next();
+    }
+    res.redirect("/login");
+}
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Servidor escuchando en el puerto ${PORT}`);
