@@ -246,50 +246,35 @@ app.get('/obtener-usuario', verificarSesion, (req, res) => {
 app.get('/agregar-usuario', verificarSesion, (req, res) => {
     res.render('agregar-usuario');
 });
+
 app.post('/agregarUsuario', verificarSesion, validateRequestBody, (req, res) => {
     const { nombre, nombre2, nombre3, nombre4, nombre5, nombre6, nombre7, nombre8 } = req.body;
-    
-    // Primero obtenemos el ID del usuario actual
-    con.query("SELECT id FROM usuarios WHERE username = ?", [req.session.usuario], (err, results) => {
-        if (err || results.length === 0) {
-            console.error("Error al obtener ID de usuario:", err);
-            return res.status(500).render('error', { 
-                mensaje: "Error al identificar al usuario" 
+
+    con.query(
+        'INSERT INTO usuario (nombre, nombre2, nombre3, nombre4, nombre5, nombre6, nombre7, nombre8) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', 
+        [nombre, nombre2, nombre3, nombre4, nombre5, nombre6, nombre7, nombre8], 
+        (err) => {
+            if (err) {
+                console.error("Error en la base de datos:", err);
+                return res.status(500).render('error', { mensaje: "Error al guardar en la base de datos" });
+            }
+            
+            res.render('info-usuario', {
+                nombre: sanitizeInput(nombre),
+                nombre2: sanitizeInput(nombre2),
+                nombre3: sanitizeInput(nombre3),
+                nombre4: sanitizeInput(nombre4),
+                nombre5: sanitizeInput(nombre5),
+                nombre6: sanitizeInput(nombre6),
+                nombre7: sanitizeInput(nombre7),
+                nombre8: sanitizeInput(nombre8)
             });
         }
-
-        const usuarioId = results[0].id;
-
-        con.query(
-            'INSERT INTO jugadores (nombre, nombre2, nombre3, nombre4, nombre5, nombre6, nombre7, nombre8, usuario_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', 
-            [nombre, nombre2, nombre3, nombre4, nombre5, nombre6, nombre7, nombre8, usuarioId], 
-            (err) => {
-                if (err) {
-                    console.error("Error en la base de datos:", err);
-                    return res.status(500).render('error', { 
-                        mensaje: "Error al guardar en la base de datos" 
-                    });
-                }
-                
-                res.render('info-usuario', {
-                    nombre: sanitizeInput(nombre),
-                    nombre2: sanitizeInput(nombre2),
-                    nombre3: sanitizeInput(nombre3),
-                    nombre4: sanitizeInput(nombre4),
-                    nombre5: sanitizeInput(nombre5),
-                    nombre6: sanitizeInput(nombre6),
-                    nombre7: sanitizeInput(nombre7),
-                    nombre8: sanitizeInput(nombre8)
-                });
-            }
-        );
-    });
+    );
 });
 
 app.get('/obtenerUsuario', verificarSesion, (req, res) => {
-    const usuarioActual = req.session.usuario;
-    
-    con.query('SELECT * FROM usuario WHERE creado_por = ?', [usuarioActual], (err, resultados) => {
+    con.query('SELECT * FROM usuario', (err, resultados) => {
         if (err) {
             console.error("Error al obtener usuarios", err);
             return res.status(500).render('error', { 
@@ -316,9 +301,9 @@ app.get('/obtenerUsuario', verificarSesion, (req, res) => {
         });
     });
 });
+
 app.post('/eliminarUsuario/:id', verificarSesion, (req, res) => {
     const userId = sanitizeInput(req.params.id);
-    const usuarioActual = req.session.usuario;
 
     if (!/^\d+$/.test(userId)) {
         return res.status(400).render('error', { 
@@ -326,7 +311,7 @@ app.post('/eliminarUsuario/:id', verificarSesion, (req, res) => {
         });
     }
 
-    con.query('DELETE FROM usuario WHERE id = ? AND creado_por = ?', [userId, usuarioActual], (err, respuesta) => {
+    con.query('DELETE FROM usuario WHERE id = ?', [userId], (err, respuesta) => {
         if (err) {
             console.error("Error al eliminar usuario", err);
             return res.status(500).render('error', { 
@@ -338,15 +323,15 @@ app.post('/eliminarUsuario/:id', verificarSesion, (req, res) => {
             return res.redirect('/obtenerUsuario'); 
         } else {
             return res.status(404).render('error', { 
-                mensaje: `No se encontró un usuario con ID ${userId} o no tienes permiso para eliminarlo` 
+                mensaje: `No se encontró un usuario con ID ${userId}` 
             });
         }
     });
 });
+
 app.post('/editarUsuario/:id', verificarSesion, validateRequestBody, (req, res) => {
     const userId = sanitizeInput(req.params.id);
     const nuevoNombre = req.body.nombre;
-    const usuarioActual = req.session.usuario;
 
     if (!/^\d+$/.test(userId)) {
         return res.status(400).render('error', { 
@@ -354,25 +339,22 @@ app.post('/editarUsuario/:id', verificarSesion, validateRequestBody, (req, res) 
         });
     }
 
-    con.query('UPDATE usuario SET nombre = ? WHERE id = ? AND creado_por = ?', 
-        [nuevoNombre, userId, usuarioActual], 
-        (err, respuesta) => {
-            if (err) {
-                console.error("Error al actualizar usuario", err);
-                return res.status(500).render('error', { 
-                    mensaje: "Error al actualizar usuario" 
-                });
-            }
-
-            if (respuesta.affectedRows > 0) {
-                return res.redirect('/obtenerUsuario'); 
-            } else {
-                return res.status(404).render('error', { 
-                    mensaje: `No se encontró un usuario con ID ${userId} o no tienes permiso para editarlo` 
-                });
-            }
+    con.query('UPDATE usuario SET nombre = ? WHERE id = ?', [nuevoNombre, userId], (err, respuesta) => {
+        if (err) {
+            console.error("Error al actualizar usuario", err);
+            return res.status(500).render('error', { 
+                mensaje: "Error al actualizar usuario" 
+            });
         }
-    );
+
+        if (respuesta.affectedRows > 0) {
+            return res.redirect('/obtenerUsuario'); 
+        } else {
+            return res.status(404).render('error', { 
+                mensaje: `No se encontró un usuario con ID ${userId}` 
+            });
+        }
+    });
 });
 
 app.use((err, req, res, next) => {
@@ -381,13 +363,7 @@ app.use((err, req, res, next) => {
         mensaje: "Ocurrió un error interno en el servidor" 
     });
 });
-function verificarSesion(req, res, next) {
-    console.log('Sesión actual:', req.session);
-    if (req.session.usuario) {
-        return next();
-    }
-    res.redirect("/login");
-}
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Servidor escuchando en el puerto ${PORT}`);
